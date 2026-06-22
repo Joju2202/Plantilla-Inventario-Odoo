@@ -1,0 +1,75 @@
+name: Generar plantilla Odoo
+
+on:
+  workflow_dispatch:
+    inputs:
+      tipo_proceso:
+        description: "Tipo de proceso"
+        required: true
+        default: "canal_fijo"
+        type: choice
+        options:
+          - canal_fijo
+          - porcentaje_ventas
+
+      canal:
+        description: "Canal destino"
+        required: true
+        default: "Amazon"
+        type: choice
+        options:
+          - Amazon
+          - Walmart
+          - Mercado Libre
+          - Liverpool
+          - Coppel
+          - Elektra
+          - TikTok
+          - Todos
+
+      archivo_entrada:
+        description: "Archivo dentro de entradas/"
+        required: true
+        default: "Stock Amazon.xlsx"
+
+      plantilla_odoo:
+        description: "Plantilla dentro de plantillas/"
+        required: true
+        default: "Plantilla_Traslados_Internos_Odoo_IDs_v4_20260619_1416.xlsx"
+
+jobs:
+  generar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generar archivo Odoo
+        env:
+          ODOO_URL: ${{ secrets.ODOO_URL }}
+          ODOO_DB: ${{ secrets.ODOO_DB }}
+          ODOO_USER: ${{ secrets.ODOO_USER }}
+          ODOO_PASSWORD: ${{ secrets.ODOO_PASSWORD }}
+          TIPO_PROCESO: ${{ github.event.inputs.tipo_proceso }}
+          CANAL: ${{ github.event.inputs.canal }}
+          ARCHIVO_ENTRADA: ${{ github.event.inputs.archivo_entrada }}
+          PLANTILLA_ODOO: ${{ github.event.inputs.plantilla_odoo }}
+        run: |
+          python src/generar_plantilla_odoo.py
+
+      - name: Subir archivo generado
+        uses: actions/upload-artifact@v4
+        with:
+          name: plantilla-odoo-generada
+          path: salidas/*.xlsx
